@@ -1,0 +1,93 @@
+body {
+    background-color: rgba(196, 196, 196, 1);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    font-family: 'Roboto', sans-serif;
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+}
+
+.header, .container {
+    width: 500px;
+    margin-bottom: 20px;
+}
+
+.search__bar_content {
+	border: 1px solid #ccc;
+	border-radius: 1px;
+    width: 550px;
+    height: 44px;
+
+    padding: 0 5px;
+    font: inherit;
+}
+
+.autocomplete {
+    display: flex;
+    flex-direction: column;    
+}
+
+.autocomplete__box {
+    border: 2px solid #000;
+    background: rgba(227, 227, 227, 1);
+    width: 500px;
+    height: 44px;
+}
+
+.autocomplete__box:hover {
+    background-color: #65CDF9;
+    cursor: pointer;
+}
+
+.autocomplete__content {
+    margin: 5px 5px;
+    color: #000;
+    font-size: 30px;
+}
+
+.repositories {
+    display: flex;
+    flex-direction: column;
+    width: 503px;
+}
+
+.repositories__box {
+    height: 101px;
+    border: 1px solid #000;
+    background: #E27BEB;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 10px;
+}
+
+.repositories__info {
+    display: flex;
+    flex-direction: column;
+
+}
+
+.repositories__content {
+    display: inline-block;
+    color: #000;
+}
+
+.repositories__delete-box {
+
+    padding: 0;
+    border: none;
+    background-color: #E27BEB;
+    
+    background-image: url('images/delete.svg');
+    width: 45px;
+    height: 45px;
+
+    cursor: pointer;
+}
