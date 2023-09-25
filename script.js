@@ -1,8 +1,12 @@
 
 class View {
     constructor() {
+        // never used?
         this.header = document.querySelector('.header__container');
+        // never used?
         this.searchForm = document.querySelector('.search')
+        
+        // if there is only one instance of a searchbar in the dom, I would rathe use a unique id.
         this.input = document.querySelector('.search__bar_content');
         this.autocomplete = document.querySelector('.autocomplete');
 
@@ -11,7 +15,9 @@ class View {
     }
 
     clearRepos() {
+        // why a loop? wrap results into a container 
         while (this.autocomplete.firstChild) {
+            // bad naming - results
             this.autocomplete.removeChild(this.autocomplete.firstChild);
         }
     }
@@ -20,6 +26,10 @@ class View {
         this.input.value = '';
     }
 
+    /**
+     * use jsDoc: @link https://jsdoc.app/
+     * @param {array} gitHubRepositories 
+     */ 
     createAutocomplete(arrayOfRepos) {
 
         this.autocomplete.removeEventListener('click', this.handleAutocompleteClick);
@@ -27,6 +37,8 @@ class View {
         const fragment = document.createDocumentFragment();
         
         arrayOfRepos.forEach(repo => {
+            // 2 options, create a private method createResultNode
+            // or use .innerHtml to reduce complexity + HtmlComponent class
             const box = document.createElement('div');
             box.classList.add('autocomplete__box');
             box.setAttribute('data-repo-id', repo.id);
@@ -39,30 +51,24 @@ class View {
             box.appendChild(content);
         });
 
-        this.autocomplete.appendChild(fragment);    
-    
-        this.handleAutocompleteClick = (event) => {
-            let target = event.target.closest('.autocomplete__box');
-            this.createRepoData(arrayOfRepos, target);
-        };
-        
-        this.autocomplete.addEventListener('click', this.handleAutocompleteClick); 
+        this.autocomplete.appendChild(fragment);      
+        this.autocomplete.addEventListener('click', this.handleAutocomplete(event));
     }
 
-    createRepoData(dataRepos, elementDOM) {
+    _handleAutocoplete = (event) => {
+        let target = event.target.closest('.autocomplete__box');
+        this._createRepoData(arrayOfRepos, target);
+    }
+
+    _createRepoData(dataRepos, elementDOM) {
         const id = elementDOM.getAttribute('data-repo-id');
 
-        const repoCurrent = dataRepos.filter((repo) => {
-            if (repo.id == id) {
-                return repo
-            } 
-        })
-        
+        const result = dataRepos.find((repo) => repo.id = id)
 
-        if (repoCurrent[0]) {
-            this.createRepoBoxData(repoCurrent[0])
-        } else return
-    
+        if (null === result) {
+            return;
+        }
+        this.createRepoBoxData(result);
     }
 
     createRepoBoxData(repoCurrent) {
@@ -76,31 +82,33 @@ class View {
         const deleteRepoDataBox = document.createElement('button');
         deleteRepoDataBox.classList.add('repositories__delete-box');
         
+        // if you allready use interpolation i would create a utility class
+        // that returns the whole html whith a set of strings
         let arrayOfTitleContent = [`Name: ${repoCurrent.name}`,`Owner: ${repoCurrent.owner.login}`, `Stars: ${repoCurrent.stargazers_count}`]
     
         const fragmentRepoContentData = document.createDocumentFragment()
-    
-        for (let i = 0; i < arrayOfTitleContent.length; i++) {
-            const repoDataContent = document.createElement('div');
-            repoDataContent.classList.add('repositories__content');
-            repoDataContent.textContent = arrayOfTitleContent[i]
-    
-            fragmentRepoContentData.appendChild(repoDataContent)
-        }
+        fragmentRepoContentData.innerHtml = HtmlComponents.myHtmlComponent(
+            repoCurrent.name,
+            repoCurrent.owner.login,
+            repoCurrent.stargazers_count
+        )
 
-        this.repositories.appendChild(repoDataBox);
-        repoDataBox.appendChild(repoDataInfo);
-        repoDataBox.appendChild(deleteRepoDataBox);
-        repoDataInfo.appendChild(fragmentRepoContentData);
+
+        // all this can be probably solved by the component approach.
+
+        // this.repositories.appendChild(repoDataBox);
+        // repoDataBox.appendChild(repoDataInfo);
+        // repoDataBox.appendChild(deleteRepoDataBox);
+        // repoDataInfo.appendChild(fragmentRepoContentData);
 
         this.clearRepos()
         this.clearInput()
 
+        // not sure what it does, should be refactored into a private method with an expressive name
         this.repositories.addEventListener('click', (event) => {
             let target = event.target;
             if (target.classList.contains('repositories__delete-box')) {
                 const parent = target.parentElement;
-        
                 if (parent) parent.remove();
             }
         })
@@ -108,25 +116,45 @@ class View {
 }
 
 class Search {
-    constructor(view, api) {
+    /**
+     * @param {View} view 
+     * @param {GitHubApi} api 
+     */
+    constructor(view, gitHubApi) {
         this.view = view;
-        this.api = api;
+        this.gitHubApi = gitHubApi;
         this.currentInputValue = ''; 
         
 
-        this.view.input.addEventListener('keyup', this.debounceSearch(this.searchRepos.bind(this), 450));
+        this.view.input.addEventListener('keyup', this._debounceSearch(
+            this.searchRepos.bind(this), 450)
+            );
     }
 
-    async searchRepos() {
-        const inputValue = this.view.input.value.trim();
+    /**
+     * @param {event} event 
+     */
+    async searchRepos(event) {
+        const inputValue = event.target.value;
         
-        if (inputValue !== '') { 
-            this.view.clearRepos();
-            this.reposRequest(inputValue);
+        if (inputValue == '') { 
+            return;
         }
+        this.view.clearRepos();
+        this._reposRequest(inputValue);
     }
 
-    debounceSearch(fn, debounceTime) {
+    /**
+     * mark yout methods as private if they are not supposed to use in other classes. 
+     * the convention in vanilla js is _myPrivateFunction
+     * @param {string} value 
+     */
+    async _reposRequest(value) {
+        const data = await this.gitHubApi.getGithubRepositories(value);
+        await this.view.createAutocomplete(data.items)
+    }
+
+    _debounceSearch(fn, debounceTime) {
         let timer;
         let context;
         let args;
@@ -142,18 +170,15 @@ class Search {
             }, debounceTime);
         };
     }
-
-    reposRequest() {
-        this.api.loadRepos(this.view.input.value).then(data => {
-            this.view.createAutocomplete(data.items)
-        });
-    }
 }
 
-class Api {
 
-    async loadRepos(value) {
-        
+class GitHubApi {
+    /**
+     * @param {string} value 
+     * @returns {json}
+     */
+    async getGithubRepositories(value) {
         try {
             const response = await fetch(`https://api.github.com/search/repositories?q=${value}+in:name&per_page=5`);
             if (!response.ok) {
@@ -166,8 +191,31 @@ class Api {
     }
 }
 
-const api = new Api();
-const app = new Search(new View(), api);
+class HtmlComponents { 
+    /**
+     * 
+     * @param {string} name 
+     * @param {string} owner 
+     * @param {string} stars 
+     * @return {string}
+     */
+    static myHtmlComponent(name, owner, stars) {
+        return `<div class="my-class">
+        <div class="name">
+            ${name}
+        </div>
+        <div class="repo">
+            ${owner}
+        </div>
+        <div class="stars">
+            ${stars}
+        </div>
+    </div>`
+    }
+}
+
+const gitHubApi = new GitHubApi();
+const app = new Search(new View(), gitHubApi);
 
 
 
